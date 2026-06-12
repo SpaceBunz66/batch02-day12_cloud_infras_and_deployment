@@ -9,29 +9,34 @@ services:
   # ──────────────────────────────────────
   # Web Service — AI Agent
   # ──────────────────────────────────────
-  - type: web
+  - type: keyvalue
+    name: agent-cache
+    plan: free
+    ipAllowList: [] # chỉ cho internal connections, không mở public Redis/Valkey
+
+    - type: web
     name: ai-agent
     runtime: python
-    region: singapore         # Chọn region gần user nhất
-    plan: free                # free | starter | standard | pro
-
+    plan: free
+    rootDir: 03-cloud-deployment/railway
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
-
-    healthCheckPath: /health   # Render check path này
-
-    autoDeploy: true           # Auto deploy khi push to GitHub
-
+    healthCheckPath: /health
     envVars:
+      - key: OPENAI_API_KEY
+        value: dummy-key
       - key: ENVIRONMENT
         value: production
-      - key: PYTHON_VERSION
-        value: 3.11.0
-      # Secrets — set qua Render Dashboard (không commit giá trị thật)
-      - key: OPENAI_API_KEY
-        sync: false            # sync: false = set thủ công trên dashboard
-      - key: AGENT_API_KEY
-        generateValue: true    # Render tự sinh random value
+      - key: REDIS_HOST
+        fromService:
+          type: keyvalue
+          name: agent-cache
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: keyvalue
+          name: agent-cache
+          property: port
 
     # Disk (nếu agent cần lưu file)
     # disk:
@@ -42,11 +47,6 @@ services:
   # ──────────────────────────────────────
   # Redis (dùng Render Redis add-on)
   # ──────────────────────────────────────
-  - type: redis
-    name: agent-cache
-    plan: free
-    maxmemoryPolicy: allkeys-lru
-    ipAllowList: []
 
 # ============================================================
 # Cách deploy:
