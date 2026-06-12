@@ -157,6 +157,12 @@ async def chat(body: ChatRequest):
     }
 
 
+@app.post("/ask")
+async def ask_agent(body: ChatRequest):
+    """Alias cho câu lệnh curl trong CODE_LAB Part 5."""
+    return await chat(body)
+
+
 @app.get("/chat/{session_id}/history")
 def get_history(session_id: str):
     """Xem conversation history của một session."""

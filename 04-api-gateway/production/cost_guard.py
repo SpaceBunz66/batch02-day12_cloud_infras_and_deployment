@@ -8,10 +8,17 @@ Mục tiêu: Tránh bill bất ngờ từ LLM API.
 
 Trong production: lưu trong Redis/DB, không phải in-memory.
 """
+import os
 import time
 import logging
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from fastapi import HTTPException
+
+try:
+    import redis
+except ImportError:  # pragma: no cover - optional for the basic classroom run
+    redis = None
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +26,50 @@ logger = logging.getLogger(__name__)
 # Giá token (tham khảo, thay đổi theo model)
 PRICE_PER_1K_INPUT_TOKENS = 0.00015   # GPT-4o-mini: $0.15/1M input
 PRICE_PER_1K_OUTPUT_TOKENS = 0.0006   # GPT-4o-mini: $0.60/1M output
+MONTHLY_BUDGET_USD = float(os.getenv("MONTHLY_BUDGET_USD", "10.0"))
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+_monthly_spend_memory: dict[str, float] = {}
+
+
+def _redis_client():
+    if redis is None:
+        return None
+    try:
+        client = redis.from_url(REDIS_URL, decode_responses=True)
+        client.ping()
+        return client
+    except Exception as exc:
+        logger.warning("Redis unavailable for cost guard, using memory fallback: %s", exc)
+        return None
+
+
+def check_budget(user_id: str, estimated_cost: float) -> bool:
+    """
+    Exercise 4.4 implementation.
+
+    Mỗi user có budget $10/tháng. Spending được lưu theo key tháng để tự
+    reset khi sang tháng mới. Redis là storage chính; memory chỉ là fallback
+    để demo vẫn chạy khi chưa bật Redis local.
+    """
+    month_key = datetime.now(timezone.utc).strftime("%Y-%m")
+    key = f"budget:{user_id}:{month_key}"
+    client = _redis_client()
+
+    if client:
+        current = float(client.get(key) or 0)
+        if current + estimated_cost > MONTHLY_BUDGET_USD:
+            return False
+        pipe = client.pipeline()
+        pipe.incrbyfloat(key, estimated_cost)
+        pipe.expire(key, 32 * 24 * 3600)
+        pipe.execute()
+        return True
+
+    current = _monthly_spend_memory.get(key, 0.0)
+    if current + estimated_cost > MONTHLY_BUDGET_USD:
+        return False
+    _monthly_spend_memory[key] = current + estimated_cost
+    return True
 
 
 @dataclass

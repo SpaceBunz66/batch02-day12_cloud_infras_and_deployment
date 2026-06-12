@@ -5,13 +5,14 @@ Kết hợp TẤT CẢ những gì đã học trong 1 project hoàn chỉnh.
 ## Checklist Deliverable
 
 - [x] Dockerfile (multi-stage, < 500 MB)
-- [x] docker-compose.yml (agent + redis)
+- [x] docker-compose.yml (agent + redis + nginx)
 - [x] .dockerignore
 - [x] Health check endpoint (`GET /health`)
 - [x] Readiness endpoint (`GET /ready`)
 - [x] API Key authentication
 - [x] Rate limiting
 - [x] Cost guard
+- [x] Conversation history trong Redis
 - [x] Config từ environment variables
 - [x] Structured logging
 - [x] Graceful shutdown
@@ -46,18 +47,17 @@ Kết hợp TẤT CẢ những gì đã học trong 1 project hoàn chỉnh.
 # 1. Setup
 cp .env.example .env
 
-# 2. Chạy với Docker Compose
-docker compose up
+# 2. Chạy với Docker Compose và scale agent
+docker compose up --scale agent=3
 
 # 3. Test
 curl http://localhost/health
 
-# 4. Lấy API key từ .env, test endpoint
-API_KEY=$(grep AGENT_API_KEY .env | cut -d= -f2)
-curl -H "X-API-Key: $API_KEY" \
+# 4. Test endpoint có API key
+curl -H "X-API-Key: secret" \
      -X POST http://localhost/ask \
      -H "Content-Type: application/json" \
-     -d '{"question": "What is deployment?"}'
+     -d '{"question": "What is deployment?", "user_id": "user1"}'
 ```
 
 ---
