@@ -13,27 +13,27 @@
 # Cài đặt tất cả dependencies
 # Image này KHÔNG được dùng để deploy
 # ──────────────────────────────────────────────────────────
-FROM python:3.11-slim AS builder
+FROM mirror.gcr.io/library/python:3.11-slim AS builder
 
 WORKDIR /app
 
 # Cài build dependencies (cần cho một số packages như numpy)
-RUN apt-get update && apt-get install -y \
-    gcc \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+# RUN apt-get update && apt-get install -y \
+#     gcc \
+#     libpq-dev \
+#     && rm -rf /var/lib/apt/lists/*
 
 # Copy và cài requirements
 # Dùng --user để install vào /root/.local (dễ copy sang stage 2)
 COPY 02-docker/production/requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN pip install --no-cache-dir --default-timeout=300 --retries=10 --user -r requirements.txt
 
 
 # ──────────────────────────────────────────────────────────
 # STAGE 2: Runtime
 # Chỉ copy những gì cần để CHẠY, không cần để BUILD
 # ──────────────────────────────────────────────────────────
-FROM python:3.11-slim AS runtime
+FROM mirror.gcr.io/library/python:3.11-slim AS runtime
 
 # Tạo non-root user — security best practice
 # Chạy với root trong container là bad practice

@@ -25,7 +25,7 @@ class Settings:
 
     # LLM (optional — chỉ warn nếu thiếu, không crash)
     openai_api_key: str = field(default_factory=lambda: os.getenv("OPENAI_API_KEY", ""))
-    llm_model: str = field(default_factory=lambda: os.getenv("LLM_MODEL", "gpt-4o-mini"))
+    llm_model: str = field(default_factory=lambda: os.getenv("LLM_MODEL", "gpt-5.4-mini"))
     max_tokens: int = field(default_factory=lambda: int(os.getenv("MAX_TOKENS", "500")))
 
     # Security

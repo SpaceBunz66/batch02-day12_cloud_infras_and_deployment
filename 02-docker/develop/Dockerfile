@@ -5,7 +5,7 @@
 
 # Bước 1: Chọn base image
 # python:3.11 = full Python distribution (~1 GB)
-FROM python:3.11
+FROM mirror.gcr.io/library/python:3.11-slim
 
 # Bước 2: Đặt working directory trong container
 WORKDIR /app
@@ -14,7 +14,7 @@ WORKDIR /app
 COPY 02-docker/develop/requirements.txt .
 
 # Bước 4: Cài dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --default-timeout=300 --retries=10 -r requirements.txt
 
 # Bước 5: Copy code vào container
 COPY 02-docker/develop/app.py .

@@ -12,21 +12,22 @@ services:
   - type: keyvalue
     name: agent-cache
     plan: free
-    ipAllowList: [] # chỉ cho internal connections, không mở public Redis/Valkey
+    ipAllowList: []
 
-    - type: web
+  - type: web
     name: ai-agent
     runtime: python
     plan: free
-    rootDir: 03-cloud-deployment/railway
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -r 03-cloud-deployment/railway/requirements.txt
+    startCommand: cd 03-cloud-deployment/railway && uvicorn app:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
       - key: OPENAI_API_KEY
         value: dummy-key
       - key: ENVIRONMENT
         value: production
+      - key: PYTHON_VERSION
+        value: 3.11.0
       - key: REDIS_HOST
         fromService:
           type: keyvalue
